@@ -93,3 +93,130 @@ export const explanationData = [
     content: "右侧第三个案例演示了：“他狠狠地打了**我**”。\n虽然词汇都是一样的（如果换成“我狠狠地打了他”），但 RNN 按照**顺序**读取，当读到“打”时，它知道前面的“他”是施暴者；当读到最后的“我”时，它知道“我”是承受者。这种对**语序**的敏感性是理解“谁对谁做了什么”的关键。",
   },
 ];
+
+// -------------------------------
+// 技术演示：Toy RNN 参数与逐步计算
+// -------------------------------
+
+export const rnnTechSpec = {
+  inputDim: 3,
+  hiddenDim: 4,
+  outputDim: 3,
+  outputLabels: ["负面", "中性", "正面"],
+  // h_t = tanh(W_xh x_t + W_hh h_{t-1} + b_h)
+  W_xh: [
+    [0.62, -0.28, 0.33],
+    [-0.47, 0.55, 0.18],
+    [0.12, 0.31, -0.66],
+    [0.51, 0.09, 0.24],
+  ],
+  W_hh: [
+    [0.42, -0.19, 0.08, 0.17],
+    [0.11, 0.38, -0.27, 0.05],
+    [-0.22, 0.14, 0.41, 0.16],
+    [0.09, -0.31, 0.22, 0.36],
+  ],
+  b_h: [0.04, -0.02, 0.01, 0.03],
+  // y_t = softmax(W_hy h_t + b_y)
+  W_hy: [
+    [0.61, -0.25, 0.19, -0.13], // 负面
+    [-0.18, 0.47, -0.11, 0.08], // 中性
+    [-0.29, 0.06, 0.41, 0.35], // 正面
+  ],
+  b_y: [0.02, 0.01, -0.03],
+};
+
+const round3 = (x) => Number(x.toFixed(3));
+
+function clampRange(x, min = -1, max = 1) {
+  if (x < min) return min;
+  if (x > max) return max;
+  return x;
+}
+
+// 用字符编码构造稳定的 toy 输入向量（演示用途，不是训练得到）
+function charToInputVector(char) {
+  const code = char.codePointAt(0) || 0;
+  const v1 = ((code % 17) - 8) / 8;
+  const v2 = ((code % 23) - 11) / 11;
+  const v3 = ((code % 29) - 14) / 14;
+  return [v1, v2, v3].map((v) => round3(clampRange(v)));
+}
+
+function matVecMul(mat, vec) {
+  return mat.map((row) =>
+    round3(row.reduce((acc, val, idx) => acc + val * (vec[idx] || 0), 0)),
+  );
+}
+
+function vecAdd(...vectors) {
+  if (!vectors.length) return [];
+  const dim = vectors[0].length;
+  const out = Array(dim).fill(0);
+  vectors.forEach((v) => {
+    for (let i = 0; i < dim; i += 1) {
+      out[i] += v[i] || 0;
+    }
+  });
+  return out.map(round3);
+}
+
+function tanhVec(vec) {
+  return vec.map((x) => round3(Math.tanh(x)));
+}
+
+function softmax(vec) {
+  const maxVal = Math.max(...vec);
+  const exps = vec.map((x) => Math.exp(x - maxVal));
+  const sum = exps.reduce((a, b) => a + b, 0);
+  return exps.map((x) => round3(x / sum));
+}
+
+function l2Norm(vec) {
+  return Math.sqrt(vec.reduce((acc, x) => acc + x * x, 0));
+}
+
+function argmax(vec) {
+  let maxIdx = 0;
+  for (let i = 1; i < vec.length; i += 1) {
+    if (vec[i] > vec[maxIdx]) maxIdx = i;
+  }
+  return maxIdx;
+}
+
+export function buildRnnTechnicalTrace(sentence) {
+  const trace = [];
+  let hPrev = Array(rnnTechSpec.hiddenDim).fill(0);
+
+  sentence.forEach((token, idx) => {
+    const x_t = charToInputVector(token);
+    const ax = matVecMul(rnnTechSpec.W_xh, x_t);
+    const ah = matVecMul(rnnTechSpec.W_hh, hPrev);
+    const z_t = vecAdd(ax, ah, rnnTechSpec.b_h);
+    const h_t = tanhVec(z_t);
+    const logits = vecAdd(matVecMul(rnnTechSpec.W_hy, h_t), rnnTechSpec.b_y);
+    const y_t = softmax(logits);
+    const predictionIdx = argmax(y_t);
+    const memoryStrength = round3(Math.min(1, l2Norm(h_t) / 2));
+
+    trace.push({
+      idx,
+      token,
+      x_t,
+      h_prev: hPrev,
+      ax,
+      ah,
+      z_t,
+      h_t,
+      logits,
+      y_t,
+      predictionIdx,
+      predictionLabel: rnnTechSpec.outputLabels[predictionIdx],
+      memoryStrength,
+    });
+
+    hPrev = h_t;
+  });
+
+  return trace;
+}
