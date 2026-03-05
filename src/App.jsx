@@ -4,7 +4,9 @@ import Home from './pages/Home';
 import NGram from './pages/NGram';
 import Word2Vec from './pages/Word2Vec';
 import RNN from './pages/RNN';
-import Transformer from './pages/Transformer';
+import TransformerCh1 from './pages/TransformerCh1';
+import TransformerCh2 from './pages/TransformerCh2';
+import TransformerCh3 from './pages/TransformerCh3';
 import RL from './pages/RL';
 
 function App() {
@@ -15,7 +17,9 @@ function App() {
         <Route path="/ngram" element={<NGram />} />
         <Route path="/word2vec" element={<Word2Vec />} />
         <Route path="/rnn" element={<RNN />} />
-        <Route path="/transformer" element={<Transformer />} />
+        <Route path="/transformer" element={<TransformerCh1 />} />
+        <Route path="/transformer/layers" element={<TransformerCh2 />} />
+        <Route path="/transformer/prediction" element={<TransformerCh3 />} />
         <Route path="/rl" element={<RL />} />
       </Routes>
     </BrowserRouter>

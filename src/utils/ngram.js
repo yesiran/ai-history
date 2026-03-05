@@ -4,49 +4,44 @@ export const defaultCorpus = [
   "我喜欢吃苹果",
   "我喜欢吃香蕉",
   "我喜欢吃西瓜",
+  "我喜欢看电影",
   "他喜欢吃苹果",
+  "他喜欢看书",
+  "她喜欢吃水果",
   "人工智能很有趣",
   "人工智能改变世界",
   "人工智能是未来",
+  "人工智能很厉害",
   "机器学习是人工智能的核心",
+  "机器学习很有趣",
   "深度学习是机器学习的分支",
+  "深度学习很有趣",
+  "深度学习改变世界",
   "我们都有美好的未来",
   "我们一起去吃饭",
   "我们一起去学习",
+  "我们一起去旅游",
   "今天天气真好",
   "今天天气不错",
+  "今天我们去学习",
+  "明天天气真好",
+  "学习人工智能",
 ];
 
 /**
  * 训练 N-gram 模型
  * @param {string[]} corpus - 语料库（句子数组）
- * @param {number} n - N 值 (1, 2, 3...)
- * @returns {Object} 模型对象
+ * @param {number} n - 上下文窗口大小（N=2 表示看前 2 个字猜下一个）
+ * @returns {Object} 模型对象，key 为 n 个字的上下文，value 为 {下一个字: 出现次数}
  */
 export function trainNGram(corpus, n) {
   const model = {};
 
   corpus.forEach(sentence => {
-    // 为了处理 N-gram，我们需要在句子前面补位，或者只处理足够长的部分
-    // 这里简化处理：直接按字符滑动窗口
-    // 比如 N=2 (Bigram)，看1个词猜下1个。窗口大小为 2。
-    
-    // 如果 N=1 (Unigram)，不需要上下文，只统计每个字出现的频率
-    if (n === 1) {
-      for (let i = 0; i < sentence.length; i++) {
-        const char = sentence[i];
-        if (!model['']) model[''] = {};
-        model[''][char] = (model[''][char] || 0) + 1;
-      }
-      return;
-    }
-
-    // N > 1
-    // 窗口大小其实是 N。我们要用前 N-1 个字作为 key (context)，第 N 个字作为 value (target)
-    const contextLength = n - 1;
-    for (let i = 0; i <= sentence.length - n; i++) {
-      const context = sentence.slice(i, i + contextLength);
-      const target = sentence[i + contextLength];
+    // 用前 n 个字作为 context，第 n+1 个字作为 target
+    for (let i = 0; i <= sentence.length - n - 1; i++) {
+      const context = sentence.slice(i, i + n);
+      const target = sentence[i + n];
 
       if (!model[context]) {
         model[context] = {};
@@ -62,29 +57,17 @@ export function trainNGram(corpus, n) {
  * 预测下一个字
  * @param {Object} model - 训练好的模型
  * @param {string} currentText - 当前输入的文本
- * @param {number} n - N 值
+ * @param {number} n - 上下文窗口大小
  * @returns {Array} 预测结果数组 [{char: '字', prob: 0.5, count: 5}, ...]
  */
 export function predictNext(model, currentText, n) {
-  if (!currentText && n > 1) return [];
+  if (!currentText || currentText.length < n) return [];
 
-  let context = "";
-  
-  if (n === 1) {
-    context = "";
-  } else {
-    // 取最后 N-1 个字作为上下文
-    const contextLength = n - 1;
-    if (currentText.length < contextLength) {
-       // 文本不够长，无法匹配 N-gram 上下文
-       // 这里可以做一个 fallback，比如降级到 N-1，但为了演示原理，我们严格返回空或提示
-       return [];
-    }
-    context = currentText.slice(-contextLength);
-  }
+  // 取最后 n 个字作为上下文
+  const context = currentText.slice(-n);
 
   const predictions = model[context];
-  
+
   if (!predictions) {
     return [];
   }
@@ -99,5 +82,5 @@ export function predictNext(model, currentText, n) {
       count,
       prob: count / total
     }))
-    .sort((a, b) => b.count - a.count); // 按概率降序
+    .sort((a, b) => b.count - a.count);
 }
