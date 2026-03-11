@@ -8,6 +8,7 @@ import TransformerCh1 from './pages/TransformerCh1';
 import TransformerCh2 from './pages/TransformerCh2';
 import TransformerCh3 from './pages/TransformerCh3';
 import RL from './pages/RL';
+import TransformerV2 from './pages/TransformerV2';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/transformer" element={<TransformerCh1 />} />
         <Route path="/transformer/layers" element={<TransformerCh2 />} />
         <Route path="/transformer/prediction" element={<TransformerCh3 />} />
+        <Route path="/transformer-v2" element={<TransformerV2 />} />
         <Route path="/rl" element={<RL />} />
       </Routes>
     </BrowserRouter>
